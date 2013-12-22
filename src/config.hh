@@ -60,7 +60,7 @@ private:
 
 class kwarg {
 public:
-    enum TYPE { FLOATING, INTEGRAL, STRING, SECTION, UNDEFINED, VECTOR };
+    enum TYPE { FLOATING, INTEGRAL, STRING, SECTION, UNDEFINED, VECTOR, BOOL };
 
     kwarg(const std::string& name, TYPE type)
         : _M_name(name), _M_type(type)
@@ -82,8 +82,34 @@ private:
 };
 
 class kwarg_const : public kwarg {
+    
+    template <typename _K>
+    struct is_bool {
+        static constexpr bool value = std::is_same<_K, bool>::value;
+    };
+
+    template <typename _K>
+    struct is_integral {
+        static constexpr bool value = !is_bool<_K>::value 
+                                    && std::is_integral<_K>::value;
+    };
+
+    template <typename _K>
+    struct is_floating{
+        static constexpr bool value = std::is_floating_point<_K>::value; 
+    };
+    
+    template <typename _K>
+    struct is_string {
+        static constexpr bool value = std::is_same<std::string, _K>::value; 
+    };
+
 public:
     ///{@
+    kwarg_const(bool data, std::string name)
+        : kwarg(name, kwarg::BOOL)
+    { _M_data.boolean = data; }
+
     kwarg_const(int64_t data, std::string name)
         : kwarg(name, kwarg::INTEGRAL)
     { _M_data.integral = data; }
@@ -99,19 +125,25 @@ public:
     
     ///{@
     template <typename _Tp>
-    typename std::enable_if<std::is_integral<_Tp>::value, _Tp>::type
+    typename std::enable_if<is_bool<_Tp>::value, _Tp>::type
+    as() const {
+        return static_cast<_Tp>(_M_data.boolean);
+    }
+
+    template <typename _Tp>
+    typename std::enable_if<is_integral<_Tp>::value, _Tp>::type
     as() const {
         return static_cast<_Tp>(_M_data.integral);
     }
 
     template <typename _Tp>
-    typename std::enable_if<std::is_floating_point<_Tp>::value, _Tp>::type
+    typename std::enable_if<is_floating<_Tp>::value, _Tp>::type
     as() const {
         return static_cast<_Tp>(_M_data.floating);
     }
 
     template <typename _Tp>
-    typename std::enable_if<std::is_same<std::string, _Tp>::value, _Tp>::type
+    typename std::enable_if<is_string<_Tp>::value, _Tp>::type
     as() const {
         return _M_data.str;
     }
@@ -124,6 +156,7 @@ private:
         int64_t     integral;
         double      floating;
         std::string str;
+        bool        boolean;
 
         __kwarg_const_union()
         { new (&str) std::string(); }

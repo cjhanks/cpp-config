@@ -21,6 +21,10 @@ main(void) {
     config::initialize("./test/example.cfg");
 
     CFG->dump();
+    assert( CFG->get<bool>("EX_BOOL_0"));
+    assert(!CFG->get<bool>("EX_BOOL_1"));
+    assert( CFG->get<bool>("EX_BOOL_2"));
+    assert(!CFG->get<bool>("EX_BOOL_3"));
 
     assert(CFG->get<string>("EX_STRING_0") == "words are defined");
     assert(CFG->get<string>("EX_STRING_0") == CFG->get<string>("EX_STRING_1"));

@@ -72,7 +72,7 @@ public:
     template <typename _Iter>
     _ValType&
     define(_Iter& iter) {
-        const int index = _S_index_char(*iter); 
+        const char index = _S_index_char(*iter); 
 
         if (! acceptable_char(*iter)) {
             if ('\0' == *iter)
@@ -81,10 +81,15 @@ public:
                 throw trie_define_error();
         }
         
-        if (0x0 == _M_paths[index])
-            _M_paths[index] = new parse_trie();
-            
-        return _M_paths[index]->define(++iter);
+        parse_trie* ptr(0x0);
+        auto it = _M_paths.find(index);
+
+        if (it == _M_paths.end())
+            _M_paths[index] = ptr = new parse_trie();
+        else 
+            ptr = it->second;
+
+        return ptr->define(++iter);
     }
 
     template <typename _Iter> 

@@ -263,6 +263,23 @@ exit_loop:
 
     return value;
 }
+    
+kwarg* 
+parse_boolean(const string& name, _Iter& iter) {
+    enum _Bool { UNDEFINED = 0, _TRUE, _FALSE };
+    static parse_trie<_Bool> sbool { { "FALSE", _FALSE }, { "TRUE", _TRUE } };
+    
+    switch (sbool.lookup(iter)) {
+        case _TRUE:
+            return new kwarg_const(true, name);
+           
+        case _FALSE:
+            return new kwarg_const(false, name);
+
+        default:
+            throw config_parse_exception("Invalid bool", iter);
+    }
+}
 } // ns
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -341,6 +358,13 @@ config_section::_M_parse_kwarg(string key, _Iter& iter, parse_trie<string>* regs
                 ptr = new config_section(key);
 
             static_cast<config_section*>(ptr)->_M_parse_iterator(++iter, regs);
+            break;
+        
+        case 'T':
+        case 't':
+        case 'F':
+        case 'f':
+            ptr = parse_boolean(key, iter);
             break;
 
         /* number */
@@ -497,6 +521,14 @@ config_section::dump(int depth) {
                      << it->second->name() 
                      << "\t"     
                      << this->get<string>(it->second->name())
+                     << endl;
+                break;
+
+            case kwarg::BOOL:
+                cerr << setw(18) 
+                     << it->second->name() 
+                     << "\t"     
+                     << (this->get<bool>(it->second->name()) ? "true" : "false")
                      << endl;
                 break;
 
