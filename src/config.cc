@@ -431,12 +431,6 @@ config_section::_M_parse_file(const string& file_path, parse_trie<string>* regs)
     _M_parse_iterator(iter, regs);
 }
 
-namespace {
-
-
-} // ns
-   
-
 void 
 config_section::_M_parse_define(_Iter& iter, parse_trie<string>* regs) {
     bypass_whitespace(iter, true);
@@ -559,6 +553,7 @@ config_section::dump(int depth) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+#if defined(CONFIG_SINGLETON)
 config* config::_S_instance(0x0);
 
 config*
@@ -572,14 +567,16 @@ config::instance() {
     assert(0x0 != config::_S_instance);
     return _S_instance;
 }
+#endif 
 
 config::config(const string& file_path)
     : config_section("ROOT")
 {
+#if defined(CONFIG_SINGLETON)
     assert(0x0 == _S_instance);
     _S_instance = this;
-    ::atexit(config_cleanup_atexit);    
-
+    ::atexit(config_cleanup_atexit);
+#endif 
     path_info info = get_path_info(file_path);
     _M_macro_regs.defval("DOT") = info.dirpath;
     _M_parse_file(info.abspath, &_M_macro_regs);

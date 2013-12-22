@@ -7,6 +7,7 @@ Env.Append(CCFLAGS = [ '-Wall'
                      , '-Werror'
                      , '-g'
                      , '-O0'
+                     , '-DCONFIG_SINGLETON'
                      , '-std=c++11' ])
 Env.Append(CPPPATH   = ['include', 'src'])
 Env.Append(LINKFLAGS = ['-rdynamic', '-lrt' ])                            

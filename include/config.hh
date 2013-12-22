@@ -13,7 +13,9 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////// 
-#define CFG config::instance()
+#if defined(CONFIG_SINGLETON)
+#  define CFG config::instance()
+#endif 
 
 using _Iter = std::string::iterator;
 
@@ -241,12 +243,13 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////
 
 class config : public config_section {
-
-    static config* _S_instance;
-
 public:
+#if defined(CONFIG_SINGLETON)
     static config* initialize(const std::string& file_path);
     static config* instance();
+#else 
+    config(const std::string& file_path);
+#endif 
     
     /**
      * Tests down a hierarchy against a casting type.  This function should be used to
@@ -259,8 +262,11 @@ public:
     bool assert_type(const std::string& key, kwarg::TYPE type) const;
 
 private:
+#if defined(CONFIG_SINGLETON)
+    static config* _S_instance;
     config(const std::string& file_path);
-    
+#endif 
+
     parse_trie<std::string> _M_macro_regs;
 };
 
