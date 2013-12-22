@@ -218,6 +218,7 @@ public:
 protected:
     friend class config_parser;
     config_section(const std::string& name);
+    virtual ~config_section();
     
     void _M_set_kwarg(kwarg* val);
     kwarg* _M_get_kwarg(const std::string& key) const;

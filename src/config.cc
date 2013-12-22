@@ -27,6 +27,12 @@ namespace {
 
 locale _S_locale;
 
+void 
+config_cleanup_atexit() {
+    if (config::instance())
+        delete config::instance();
+}
+
 bool
 eos(_Iter& iter, bool do_throw) {
     if (*iter == '\0') {
@@ -287,6 +293,15 @@ parse_boolean(const string& name, _Iter& iter) {
 config_section::config_section(const string& name)
     : kwarg(name, kwarg::SECTION)
 {}
+
+config_section::~config_section() {
+    for (auto it = _M_kwargs.begin(); it != _M_kwargs.end(); ++it) {
+        if (it->second->type() == kwarg::SECTION)
+            delete static_cast<config_section*>(it->second);
+        else
+            delete it->second;
+    }
+}
 
 config_section*
 config_section::section(const std::string& name) {
@@ -549,8 +564,7 @@ config* config::_S_instance(0x0);
 config*
 config::initialize(const string& file_path) {
     assert(0x0 == config::_S_instance);
-    _S_instance = new config(file_path);
-    return config::instance();
+    return new config(file_path);
 }
 
 config*
@@ -562,6 +576,10 @@ config::instance() {
 config::config(const string& file_path)
     : config_section("ROOT")
 {
+    assert(0x0 == _S_instance);
+    _S_instance = this;
+    ::atexit(config_cleanup_atexit);    
+
     path_info info = get_path_info(file_path);
     _M_macro_regs.defval("DOT") = info.dirpath;
     _M_parse_file(info.abspath, &_M_macro_regs);
