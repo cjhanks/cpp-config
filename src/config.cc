@@ -1,3 +1,21 @@
+#if 0
+Copyright 2013 CjHanks <develop@cjhanks.name>
+
+This file is part of libconf.
+
+libconf is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+libconf is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with libconf.  If not, see <http://www.gnu.org/licenses/>.
+#endif
 
 #include "config.hh"
 
@@ -113,36 +131,43 @@ get_path_info(const string& path) {
 
 bool
 bypass_whitespace(_Iter& iter, bool do_throw = true) {
+    /* macro is used to encode a 2 byte sequence and an "in_comment" status for a unique
+     * value which can be used in the jump table.
+     */
+    #define str_sequence(_a_, _b_, _c_) ((_a_ << 16) | (_b_ << 8) | (_c_))
+
     bool in_comment = false;
-
+    
     while (! eos(iter, do_throw)) {
-        switch (*iter) {
-            case '/':
-                if (in_comment) {
-                    if (*(iter - 1) == '*')
-                        in_comment = false;
+        switch (str_sequence(*iter, *(iter + 1), in_comment)) {
+            case str_sequence('/', '*', false):
+                in_comment = true;
+                break;
+            
+            case str_sequence('*', '/', true):
+                ++iter; /*< due to look ahead >*/
+                in_comment = false;
+                break;
 
-                } else {
-                    if (*(iter + 1) == '*')
-                        in_comment = true;
-                    else
-                        goto exit_loop;
-                }
+            case str_sequence('/', '/', false):
+                DEBUG("ss sequence");
+                while (! eos(iter, do_throw) && *iter != '\n')
+                    ++iter;
                 break;
 
             default:
-                if (in_comment)
-                    break;
-                else
-                    if (! isspace(*iter, _S_locale))
-                        goto exit_loop;
+                if (! in_comment && ! isspace(*iter, _S_locale)) 
+                    goto exit_loop;
+
                 break;
         }
+
         ++iter;
     }
-
+    
 exit_loop:
     return ! eos(iter, false);
+#undef str_sequence
 }
 
 string

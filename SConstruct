@@ -12,7 +12,7 @@ Env.Append(CCFLAGS = [ '-Wall'
 Env.Append(CPPPATH   = ['include', 'src'])
 Env.Append(LINKFLAGS = ['-rdynamic', '-lrt' ])                            
 
-lib = Env.Library('cfg', source = Glob('src/*.cc'))
+lib = Env.SharedLibrary('conf', source = Glob('src/*.cc'))
 
 t0  = Env.Program('tst0', source = ['test/tst0.cc', lib])
 t1  = Env.Program('tst1', source = ['test/tst1.cc', lib])

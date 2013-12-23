@@ -1,4 +1,3 @@
-#if 0
 Copyright 2013 CjHanks <develop@cjhanks.name>
 
 This file is part of libconf.
@@ -15,14 +14,3 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with libconf.  If not, see <http://www.gnu.org/licenses/>.
-#endif 
-
-#ifndef __DEBUG_HH_
-#define __DEBUG_HH_ 
-
-#include <iostream>
-
-#define DEBUG(_msg_) \
-    do { std::cerr << _msg_ << std::endl; } while (0)
-
-#endif 
