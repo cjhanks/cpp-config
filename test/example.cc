@@ -33,6 +33,7 @@ main(void) {
     assert(CFG->get<string>("ex_string_5") == "$MACRO_STR_0 - ${MACRO_STR_1}");
     
     assert(CFG->get<long>("EX_LONG_0") == -300);
+    assert(CFG->get<kwarg::INTEGRAL>("EX_LONG_0") == -300);
     ///{@
     // internally they are stored as int64 however they can be cast to unsigned without
     // bit ordering errors

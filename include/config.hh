@@ -22,9 +22,11 @@ along with libconf.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <iterator>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <vector>
 
 #include "bits/config.hh"
 #include "bits/debug.hh"
@@ -96,13 +98,7 @@ public:
     kwarg(const kwarg&) = delete;
     kwarg(kwarg&&) = delete;
 
-private:
-    const std::string _M_name;
-    const TYPE _M_type;
-};
-
-class kwarg_const : public kwarg {
-    
+protected: 
     template <typename _K>
     struct is_bool {
         static constexpr bool value = std::is_same<_K, bool>::value;
@@ -123,6 +119,17 @@ class kwarg_const : public kwarg {
     struct is_string {
         static constexpr bool value = std::is_same<std::string, _K>::value; 
     };
+    
+private:
+    const std::string _M_name;
+    const TYPE _M_type;
+};
+
+class kwarg_const : public kwarg {
+    
+    using integral_t = int64_t;
+    using floating_t = double;
+    using string_t   = std::string;
 
 public:
     ///{@
@@ -143,7 +150,14 @@ public:
     { _M_data.str = data; }
     ///@}
     
-    ///{@
+    ///{@ 
+    template <kwarg::TYPE type> 
+    typename std::enable_if<kwarg::INTEGRAL == type, integral_t>::type
+    as_enum() const {
+        return static_cast<integral_t>(_M_data.integral);
+    }
+    
+    ///{@ 
     template <typename _Tp>
     typename std::enable_if<is_bool<_Tp>::value, _Tp>::type
     as() const {
@@ -153,7 +167,7 @@ public:
     template <typename _Tp>
     typename std::enable_if<is_integral<_Tp>::value, _Tp>::type
     as() const {
-        return static_cast<_Tp>(_M_data.integral);
+        return static_cast<_Tp>(this->as_enum<kwarg::INTEGRAL>());
     }
 
     template <typename _Tp>
@@ -187,6 +201,35 @@ private:
 };
 
 
+template <typename _Tp>
+class kwarg_vector : public kwarg {
+public:
+    kwarg_vector(const std::string& name
+               , std::vector<std::unique_ptr<kwarg_const>>& source)
+        : kwarg(name) 
+    {
+        for (auto it = source.begin(); it != source.end(); ++it)
+            _M_vector.push_back((*it)->as<_Tp>());
+    }
+    
+    std::vector<_Tp>&
+    operator->() const { 
+        return _M_vector;
+    }
+
+    static constexpr TYPE
+    type() {
+        return is_floating<_Tp>::value ? kwarg::FLOATING :
+               is_integral<_Tp>::value ? kwarg::INTEGRAL :
+               is_string  <_Tp>::value ? kwarg::STRING   :
+               kwarg::UNDEFINED;
+    }
+
+private:
+    std::vector<_Tp> _M_vector;
+};
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // CONFIG SECTIONS
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +251,13 @@ public:
     config_section* section(const std::string& name);
     
     ///{@
+    template <kwarg::TYPE type>
+    auto
+    get(const std::string& key 
+            ) -> decltype(static_cast<kwarg_const*>(0x0)->as_enum<type>()) {
+        return static_cast<kwarg_const*>(_M_get_kwarg(key))->as_enum<type>();
+    }
+
     /**
      */
     template <typename _Tp>
