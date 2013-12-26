@@ -23,10 +23,13 @@ along with libconf.  If not, see <http://www.gnu.org/licenses/>.
 #include <cassert>
 #include <climits>
 #include <cstdlib>
+#include <algorithm>
 #include <fstream>
 #include <functional>
 #include <iomanip>
 #include <locale>
+#include <memory>
+#include <vector>
 
 
 using std::function;
@@ -34,8 +37,10 @@ using std::getline;
 using std::ifstream;
 using std::istreambuf_iterator;
 using std::locale;
+using std::mismatch;
 using std::string;
 using std::stringstream;
+using std::unique_ptr;
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +50,7 @@ namespace {
 
 locale _S_locale;
 
-void 
+void
 config_cleanup_atexit() {
     if (config::instance())
         delete config::instance();
@@ -109,7 +114,7 @@ get_path_info(const string& path) {
         throw config_io_error(path);
     else
         info.abspath = string(ptr);
-    
+
     memcpy(buf, info.abspath.c_str(), info.abspath.size());
     ptr = dirname(buf);
 
@@ -137,13 +142,13 @@ bypass_whitespace(_Iter& iter, bool do_throw = true) {
     #define str_sequence(_a_, _b_, _c_) ((_a_ << 16) | (_b_ << 8) | (_c_))
 
     bool in_comment = false;
-    
+
     while (! eos(iter, do_throw)) {
         switch (str_sequence(*iter, *(iter + 1), in_comment)) {
             case str_sequence('/', '*', false):
                 in_comment = true;
                 break;
-            
+
             case str_sequence('*', '/', true):
                 ++iter; /*< due to look ahead >*/
                 in_comment = false;
@@ -156,7 +161,7 @@ bypass_whitespace(_Iter& iter, bool do_throw = true) {
                 break;
 
             default:
-                if (! in_comment && ! isspace(*iter, _S_locale)) 
+                if (! in_comment && ! isspace(*iter, _S_locale))
                     goto exit_loop;
 
                 break;
@@ -164,7 +169,7 @@ bypass_whitespace(_Iter& iter, bool do_throw = true) {
 
         ++iter;
     }
-    
+
 exit_loop:
     return ! eos(iter, false);
 #undef str_sequence
@@ -221,10 +226,10 @@ parse_number(const string& name, _Iter& iter, parse_trie<string>* regs) {
 exit_loop:
         break;
     }
-    
+
     if (0 == data.size())
         throw config_parse_exception("empty number", iter);
-    
+
     if (data.find('.') == string::npos) {
         /* INTEGRAL */
         return new kwarg_const(static_cast<int64_t>(std::stoll(data)), name);
@@ -294,16 +299,16 @@ exit_loop:
 
     return value;
 }
-    
-kwarg* 
+
+kwarg*
 parse_boolean(const string& name, _Iter& iter) {
     enum _Bool { UNDEFINED = 0, _TRUE, _FALSE };
     static parse_trie<_Bool> sbool { { "FALSE", _FALSE }, { "TRUE", _TRUE } };
-    
+
     switch (sbool.lookup(iter)) {
         case _TRUE:
             return new kwarg_const(true, name);
-           
+
         case _FALSE:
             return new kwarg_const(false, name);
 
@@ -321,10 +326,18 @@ config_section::config_section(const string& name)
 
 config_section::~config_section() {
     for (auto it = _M_kwargs.begin(); it != _M_kwargs.end(); ++it) {
-        if (it->second->type() == kwarg::SECTION)
-            delete static_cast<config_section*>(it->second);
-        else
-            delete it->second;
+        switch (it->second->type()) {
+            case kwarg::SECTION:
+                delete static_cast<config_section*>(it->second);
+                break;
+
+            case kwarg::VECTOR:
+                delete static_cast<kwarg_vector*>(it->second);
+                break;
+            
+            default:
+                delete it->second;
+        }
     }
 }
 
@@ -369,11 +382,6 @@ kwarg*
 config_section::_M_parse_kwarg(string key, _Iter& iter, parse_trie<string>* regs) {
     kwarg* ptr(0x0);
 
-    bypass_whitespace(iter  , true);
-    if ('=' != *iter)
-        throw config_parse_exception("expected '='", iter);
-    bypass_whitespace(++iter, true);
-
     switch (*iter) {
         /* macro parsing */
         case '@':
@@ -388,6 +396,7 @@ config_section::_M_parse_kwarg(string key, _Iter& iter, parse_trie<string>* regs
 
         /* section vector */
         case '[':
+            ptr = _M_parse_vector(key, ++iter, regs);
             break;
 
         /* section object */
@@ -399,7 +408,7 @@ config_section::_M_parse_kwarg(string key, _Iter& iter, parse_trie<string>* regs
 
             static_cast<config_section*>(ptr)->_M_parse_iterator(++iter, regs);
             break;
-        
+
         case 'T':
         case 't':
         case 'F':
@@ -430,12 +439,22 @@ config_section::_M_parse_iterator(_Iter& iter, parse_trie<string>* regs) {
                 break;
 
             case ']':
+                ++iter;
+                break;
+
             case '}':
                 ++iter;
                 return;
 
             default:
-                _M_set_kwarg(_M_parse_kwarg(parse_word(iter), iter, regs));
+                string name = parse_word(iter);
+
+                bypass_whitespace(iter  , true);
+                if ('=' != *iter)
+                    throw config_parse_exception("expected '='", iter);
+                bypass_whitespace(++iter, true);
+
+                _M_set_kwarg(_M_parse_kwarg(name, iter, regs));
                 break;
         }
     }
@@ -443,7 +462,7 @@ config_section::_M_parse_iterator(_Iter& iter, parse_trie<string>* regs) {
 
 void
 config_section::_M_parse_file(const string& file_path, parse_trie<string>* regs) {
-    path_info info = get_path_info(file_path); 
+    path_info info = get_path_info(file_path);
 
    ifstream file(info.abspath);
 
@@ -456,7 +475,7 @@ config_section::_M_parse_file(const string& file_path, parse_trie<string>* regs)
     _M_parse_iterator(iter, regs);
 }
 
-void 
+void
 config_section::_M_parse_define(_Iter& iter, parse_trie<string>* regs) {
     bypass_whitespace(iter, true);
     string name = parse_word(iter);
@@ -469,17 +488,17 @@ config_section::_M_parse_define(_Iter& iter, parse_trie<string>* regs) {
     regs->defval(name) = parse_string(++iter, regs);
 };
 
-void 
+void
 config_section::_M_parse_export(_Iter& iter, parse_trie<string>* regs) {
     bypass_whitespace(iter, true);
     string name  = parse_word(iter);
     char*  value = getenv(name.c_str());
-   
+
     if (0x0 != value)
         regs->defval(name) = string(value);
 }
-    
-void 
+
+void
 config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs) {
     bypass_whitespace(iter, true);
     _M_parse_file(parse_string(iter, regs), regs);
@@ -494,7 +513,7 @@ config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
                               , { "INCLUDE", INCLUDE } };
     if ('@' != *iter)
         throw config_parse_exception("expected ['@']", iter);
-    
+
     Op op = UNDEFINED;
 
     try {
@@ -510,24 +529,54 @@ config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
         case DEFINE:
             _M_parse_define(iter, regs);
             break;
-        
+
         case EXPORT:
             _M_parse_export(iter, regs);
             break;
-        
+
         case INCLUDE:
             _M_parse_include(iter, regs);
             break;
-    } 
+    }
 }
 
-void 
+kwarg*
+config_section::_M_parse_vector(string key, _Iter& iter, parse_trie<string>* regs) {
+    DEBUG("_M_parse_vector(" << key << ")");
+    bypass_whitespace(iter, true);
+    std::vector<kwarg_const*> items;
+
+    while (! eos(iter, true)) {
+        switch (*iter) {
+            case ',':
+                break;
+
+            case ']':
+                goto exit_loop;
+
+            default:
+                items.emplace_back(
+                        static_cast<kwarg_const*>(_M_parse_kwarg(key, iter, regs))
+                        );
+                break;
+        }
+
+        bypass_whitespace(++iter, true);
+        continue;
+exit_loop:
+        break;
+    }
+    
+    return new kwarg_vector(key, items);
+}
+
+void
 config_section::dump(int depth) {
     using std::cerr;
     using std::endl;
     using std::setw;
     using std::setfill;
-    
+
     cerr << setfill('=') << setw(depth) << this->name() << endl;
 
     for (auto it = _M_kwargs.begin(); it != _M_kwargs.end(); ++it) {
@@ -535,33 +584,33 @@ config_section::dump(int depth) {
 
         switch (it->second->type()) {
             case kwarg::FLOATING:
-                cerr << setw(18) 
-                     << it->second->name() 
-                     << "\t"     
+                cerr << setw(18)
+                     << it->second->name()
+                     << "\t"
                      << this->get<double>(it->second->name())
                      << endl;
                 break;
 
             case kwarg::INTEGRAL:
-                cerr << setw(18) 
-                     << it->second->name() 
-                     << "\t"     
+                cerr << setw(18)
+                     << it->second->name()
+                     << "\t"
                      << this->get<long>(it->second->name())
                      << endl;
                 break;
 
             case kwarg::STRING:
-                cerr << setw(18) 
-                     << it->second->name() 
-                     << "\t"     
+                cerr << setw(18)
+                     << it->second->name()
+                     << "\t"
                      << this->get<string>(it->second->name())
                      << endl;
                 break;
 
             case kwarg::BOOL:
-                cerr << setw(18) 
-                     << it->second->name() 
-                     << "\t"     
+                cerr << setw(18)
+                     << it->second->name()
+                     << "\t"
                      << (this->get<bool>(it->second->name()) ? "true" : "false")
                      << endl;
                 break;
@@ -592,7 +641,7 @@ config::instance() {
     assert(0x0 != config::_S_instance);
     return _S_instance;
 }
-#endif 
+#endif
 
 config::config(const string& file_path)
     : config_section("ROOT")
@@ -601,7 +650,7 @@ config::config(const string& file_path)
     assert(0x0 == _S_instance);
     _S_instance = this;
     ::atexit(config_cleanup_atexit);
-#endif 
+#endif
     path_info info = get_path_info(file_path);
     _M_macro_regs.defval("DOT") = info.dirpath;
     _M_parse_file(info.abspath, &_M_macro_regs);

@@ -33,7 +33,6 @@ main(void) {
     assert(CFG->get<string>("ex_string_5") == "$MACRO_STR_0 - ${MACRO_STR_1}");
     
     assert(CFG->get<long>("EX_LONG_0") == -300);
-    assert(CFG->get<kwarg::INTEGRAL>("EX_LONG_0") == -300);
     ///{@
     // internally they are stored as int64 however they can be cast to unsigned without
     // bit ordering errors
@@ -58,4 +57,17 @@ main(void) {
 
     assert(CFG->has_section("object_1"));
     assert(CFG->section("object_1")->get<string>("string") == "Hello world");
+    
+    assert(CFG->has_section("vector_0"));
+    int i = 0;
+
+    for (auto it = CFG->vector("vector_0")->cbegin(); 
+         it != CFG->vector("vector_0")->cend(); ++it) {
+        assert((*it)->as<long>() == i++);
+    }
+
+    const kwarg_vector& vec = CFG->vector("vector_1");
+    assert(vec->at(0)->as<long>() == 0);
+    assert(vec->at(1)->as<double>() == 1.0);
+    assert(vec->at(2)->as<string>() == "two");
 }

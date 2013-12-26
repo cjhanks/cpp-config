@@ -126,11 +126,6 @@ private:
 };
 
 class kwarg_const : public kwarg {
-    
-    using integral_t = int64_t;
-    using floating_t = double;
-    using string_t   = std::string;
-
 public:
     ///{@
     kwarg_const(bool data, std::string name)
@@ -150,24 +145,18 @@ public:
     { _M_data.str = data; }
     ///@}
     
-    ///{@ 
-    template <kwarg::TYPE type> 
-    typename std::enable_if<kwarg::INTEGRAL == type, integral_t>::type
-    as_enum() const {
-        return static_cast<integral_t>(_M_data.integral);
-    }
     
     ///{@ 
+    template <typename _Tp>
+    typename std::enable_if<is_integral<_Tp>::value, _Tp>::type
+    as() const {
+        return static_cast<_Tp>(_M_data.integral);
+    }
+
     template <typename _Tp>
     typename std::enable_if<is_bool<_Tp>::value, _Tp>::type
     as() const {
         return static_cast<_Tp>(_M_data.boolean);
-    }
-
-    template <typename _Tp>
-    typename std::enable_if<is_integral<_Tp>::value, _Tp>::type
-    as() const {
-        return static_cast<_Tp>(this->as_enum<kwarg::INTEGRAL>());
     }
 
     template <typename _Tp>
@@ -201,32 +190,24 @@ private:
 };
 
 
-template <typename _Tp>
 class kwarg_vector : public kwarg {
 public:
-    kwarg_vector(const std::string& name
-               , std::vector<std::unique_ptr<kwarg_const>>& source)
-        : kwarg(name) 
-    {
-        for (auto it = source.begin(); it != source.end(); ++it)
-            _M_vector.push_back((*it)->as<_Tp>());
+    kwarg_vector(const std::string& name, std::vector<kwarg_const*>& source)
+        : kwarg(name, kwarg::VECTOR), _M_vector(source)
+    { }
+
+    virtual ~kwarg_vector() {
+        //for (auto it = _M_vector.cbegin(); it != _M_vector.cend(); ++it)
+        //    delete (*it);
     }
     
-    std::vector<_Tp>&
+    const std::vector<kwarg_const*>*
     operator->() const { 
-        return _M_vector;
-    }
-
-    static constexpr TYPE
-    type() {
-        return is_floating<_Tp>::value ? kwarg::FLOATING :
-               is_integral<_Tp>::value ? kwarg::INTEGRAL :
-               is_string  <_Tp>::value ? kwarg::STRING   :
-               kwarg::UNDEFINED;
+        return &_M_vector;
     }
 
 private:
-    std::vector<_Tp> _M_vector;
+    const std::vector<kwarg_const*> _M_vector;
 };
 
 
@@ -249,15 +230,13 @@ public:
     ///@}
     
     config_section* section(const std::string& name);
+
+    kwarg_vector&
+    vector(const std::string& key) const {
+        return *static_cast<kwarg_vector*>(_M_get_kwarg(key));
+    }
     
     ///{@
-    template <kwarg::TYPE type>
-    auto
-    get(const std::string& key 
-            ) -> decltype(static_cast<kwarg_const*>(0x0)->as_enum<type>()) {
-        return static_cast<kwarg_const*>(_M_get_kwarg(key))->as_enum<type>();
-    }
-
     /**
      */
     template <typename _Tp>
@@ -297,6 +276,7 @@ protected:
     void _M_parse_iterator(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_macro(_Iter& iter, parse_trie<std::string>* regs);
     kwarg* _M_parse_kwarg(std::string key, _Iter& iter, parse_trie<std::string>* regs);
+    kwarg* _M_parse_vector(std::string key, _Iter& iter, parse_trie<std::string>* regs);
     
     void _M_parse_define(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_export(_Iter& iter, parse_trie<std::string>* regs);
