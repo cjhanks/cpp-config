@@ -88,6 +88,8 @@ public:
         : _M_name(name), _M_type(type)
     {}
 
+    virtual ~kwarg() {}
+
     std::string
     name() const { return _M_name; }
     
@@ -143,6 +145,9 @@ public:
     kwarg_const(std::string data, std::string name)
         : kwarg(name, kwarg::STRING)
     { _M_data.str = data; }
+
+    virtual ~kwarg_const() {
+    }
     ///@}
     
     
@@ -175,17 +180,14 @@ public:
 private:
     /**
      */
-    union __kwarg_const_union {
-        int64_t     integral;
-        double      floating;
+    struct __kwarg_const_union {
+        union {
+            int64_t integral;
+            double  floating;
+            bool    boolean;
+        };
+
         std::string str;
-        bool        boolean;
-
-        __kwarg_const_union()
-        { new (&str) std::string(); }
-
-        ~__kwarg_const_union() 
-        { (&str)->~basic_string(); };
     } _M_data;
 };
 
@@ -197,8 +199,9 @@ public:
     { }
 
     virtual ~kwarg_vector() {
-        //for (auto it = _M_vector.cbegin(); it != _M_vector.cend(); ++it)
-        //    delete (*it);
+        for (auto it = _M_vector.cbegin(); it != _M_vector.cend(); ++it) {
+            delete ((*it));
+        }
     }
     
     const std::vector<kwarg_const*>*

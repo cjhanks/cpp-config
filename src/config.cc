@@ -325,20 +325,8 @@ config_section::config_section(const string& name)
 {}
 
 config_section::~config_section() {
-    for (auto it = _M_kwargs.begin(); it != _M_kwargs.end(); ++it) {
-        switch (it->second->type()) {
-            case kwarg::SECTION:
-                delete static_cast<config_section*>(it->second);
-                break;
-
-            case kwarg::VECTOR:
-                delete static_cast<kwarg_vector*>(it->second);
-                break;
-            
-            default:
-                delete it->second;
-        }
-    }
+    for (auto it = _M_kwargs.begin(); it != _M_kwargs.end(); ++it)
+        delete it->second;
 }
 
 config_section*
