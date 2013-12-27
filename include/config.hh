@@ -230,6 +230,9 @@ public:
     ///@}
     
     config_section* section(const std::string& name);
+    config_section* object(const std::string& name) {
+        return this->section(name);
+    }
 
     kwarg_vector&
     vector(const std::string& key) const {

@@ -396,6 +396,7 @@ config_section::_M_parse_kwarg(string key, _Iter& iter, parse_trie<string>* regs
             static_cast<config_section*>(ptr)->_M_parse_iterator(++iter, regs);
             break;
 
+        /* booleans */
         case 'T':
         case 't':
         case 'F':
