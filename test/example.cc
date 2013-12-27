@@ -70,4 +70,8 @@ main(void) {
     assert(vec->at(0)->as<long>() == 0);
     assert(vec->at(1)->as<double>() == 1.0);
     assert(vec->at(2)->as<string>() == "two");
+    
+    assert(CFG->get<bool >("BOGUS", true) == true);
+    assert(CFG->get<long >("BOGUS", 1000) == 1000);
+    assert(CFG->get<float>("BOGUS", 10.0) == 10.0);
 }

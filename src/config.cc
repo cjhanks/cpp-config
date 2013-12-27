@@ -155,7 +155,6 @@ bypass_whitespace(_Iter& iter, bool do_throw = true) {
                 break;
 
             case str_sequence('/', '/', false):
-                DEBUG("ss sequence");
                 while (! eos(iter, do_throw) && *iter != '\n')
                     ++iter;
                 break;
@@ -530,7 +529,6 @@ config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
 
 kwarg*
 config_section::_M_parse_vector(string key, _Iter& iter, parse_trie<string>* regs) {
-    DEBUG("_M_parse_vector(" << key << ")");
     bypass_whitespace(iter, true);
     std::vector<kwarg_const*> items;
 

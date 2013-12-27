@@ -15,7 +15,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with libconf.  If not, see <http://www.gnu.org/licenses/>.
-#endif
+#endif 
 
 #ifndef __CONFIG_HH_
 #define __CONFIG_HH_
@@ -26,6 +26,7 @@ along with libconf.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
 #include "bits/config.hh"
@@ -90,11 +91,9 @@ public:
 
     virtual ~kwarg() {}
 
-    std::string
-    name() const { return _M_name; }
+    std::string name() const { return _M_name; }
     
-    TYPE 
-    type() const { return _M_type; }
+    TYPE type() const { return _M_type; }
 
     kwarg& operator=(const kwarg&) = delete;
     kwarg(const kwarg&) = delete;
@@ -146,8 +145,6 @@ public:
         : kwarg(name, kwarg::STRING)
     { _M_data.str = data; }
 
-    virtual ~kwarg_const() {
-    }
     ///@}
     
     
@@ -244,15 +241,15 @@ public:
      */
     template <typename _Tp>
     _Tp
-    get(const std::string& key) {
+    get(const std::string& key) const {
         return static_cast<kwarg_const*>(_M_get_kwarg(key))->as<_Tp>();
     }
     
     /**
      */
-    template <typename _Tp, _Tp deflt>
+    template <typename _Tp>
     _Tp
-    get_default(const std::string& key) {
+    get(const std::string& key, const _Tp& deflt) const {
         auto it = _M_kwargs.find(key);
 
         if (it == _M_kwargs.end())
@@ -286,7 +283,21 @@ protected:
     void _M_parse_include(_Iter& iter, parse_trie<std::string>* regs);
 
 private:
-    std::map<std::string, kwarg*> _M_kwargs;
+    struct umap_overload {
+        size_t
+        operator() (const std::string& key) const {
+            return 1;
+            size_t k = 2166136261;
+
+            for (size_t i = 0; i < key.size(); i += 4)
+                k = (k * 16777619) ^ key[i];
+
+            return k;
+        };
+    };
+
+    std::unordered_map<std::string, kwarg*, umap_overload> _M_kwargs;
+    //std::unordered_map<std::string, kwarg*> _M_kwargs;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
