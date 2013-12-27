@@ -6,7 +6,7 @@ Env.Append(CCFLAGS = [ '-Wall'
                      , '-Wextra'
                      , '-Werror'
                      , '-g'
-                     , '-O0'
+                     , '-O3'
                      , '-DCONFIG_SINGLETON'
                      , '-std=c++11' ])
 Env.Append(CPPPATH   = ['include', 'src'])
@@ -20,5 +20,7 @@ t2  = Env.Program('tst2', source = ['test/tst2.cc', lib])
 t3  = Env.Program('tst3', source = ['test/tst3.cc', lib])
 
 example  = Env.Program('example', source = ['test/example.cc', lib])
+
+example  = Env.Program('perf-0', source = ['test/perf-0.cc', lib])
 
 
