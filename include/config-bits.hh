@@ -16,9 +16,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with libconf.  If not, see <http://www.gnu.org/licenses/>.
 #endif
-
+/**
+ * @file config-bits.hh
+ *
+ * Code in this file contains implementational details from config.hh which needn't
+ * obfuscate the config.hh include header.
+ */
 #ifndef __BITS_CONFIG_HH_
-#define __BITS_CONFIG_HH_ 
+#define __BITS_CONFIG_HH_
 
 #include <cassert>
 #include <cstring>
@@ -31,25 +36,16 @@ along with libconf.  If not, see <http://www.gnu.org/licenses/>.
 #include <utility>
 
 
-#include "bits/debug.hh"
-
 //////////////////////////////////////////////////////////////////////////////////////////
+/// TODO: encapsulate this internal iterator type info better
+using _Iter = std::string::iterator;
 
-namespace bits {
-
-
-} // ns bits
-
-
-//////////////////////////////////////////////////////////////////////////////////////////
-
-inline bool 
+inline bool
 acceptable_char(char c) {
     return std::isalpha(c) || std::isdigit(c) || c == '_';
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
 
 class trie_lookup_error : public std::runtime_error {
 public:
@@ -68,11 +64,11 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////
 /**
  * @class       parse_trie
- * @template    _ValType "stored type" 
+ * @template    _ValType "stored type"
  *
  * This class is a non-compact trie structure which should not be used for high
  * performance access.
- *  
+ *
  * @complexity O(len(key_name))
  */
 template <typename _ValType>
@@ -88,102 +84,102 @@ public:
         for (auto it = _M_paths.begin(); it != _M_paths.end(); ++it)
             delete it->second;
     }
-    
+
     _ValType&
     defval(std::string key) {
         auto it = key.begin();
         return this->define(it);
     }
-    
+
     template <typename _Iter>
     _ValType&
     define(_Iter& iter) {
-        const char index = _S_index_char(*iter); 
+        const char index = _S_index_char(*iter);
 
         if (! acceptable_char(*iter)) {
             if ('\0' == *iter)
                 return _M_data;
-            else 
+            else
                 throw trie_define_error();
         }
-        
+
         parse_trie* ptr(0x0);
         auto it = _M_paths.find(index);
 
         if (it == _M_paths.end())
             _M_paths[index] = ptr = new parse_trie();
-        else 
+        else
             ptr = it->second;
 
         return ptr->define(++iter);
     }
 
-    template <typename _Iter> 
+    template <typename _Iter>
     _ValType
     lookup(_Iter& iter) {
         auto it = _M_lookup(iter);
 
         if (! it.first)
             throw trie_lookup_error();
-        else 
+        else
             return it.second;
     }
 
 private:
-    static int 
+    static int
     _S_index_char(char c) { return std::toupper(c); }
-    
+
     //----------------------------------------------------------------------------------//
     ///{@
     /**
      * HACK:
      * This struct template is used to for the two _M_is_terminal functions below to
      * allow for two _ValType's :
-     *     o those with a .size() member 
+     *     o those with a .size() member
      *     o those which are castable with bool()
      *
      * If the parse_trie type needs to support a type in which neither case is sane this
      * class needs to be re-written with a predicate.
      *
-     * @struct has_size_method 
+     * @struct has_size_method
      * This structure works as a specific variant of SFINAE
      */
-    template <typename _K> 
+    template <typename _K>
     struct has_size_method {
         typedef char y;
         struct n { char _[2]; };
-    
+
         template <typename _T, size_t(_T::*)() const = &_T::size>
         static y impl(_T*);
         static n impl(...);
-    
+
         static constexpr bool value = sizeof(impl(static_cast<_K*>(0x0))) == sizeof(y);
     };
 
     template <typename _Tp = _ValType>
     typename std::enable_if<has_size_method<_Tp>::value, bool>::type
-    _M_is_terminal() const { 
+    _M_is_terminal() const {
         return 0 != _M_data.size();
     }
 
     template <typename _Tp = _ValType>
     typename std::enable_if<!has_size_method<_Tp>::value, bool>::type
-    _M_is_terminal() const { 
-        return static_cast<bool>(_M_data); 
+    _M_is_terminal() const {
+        return static_cast<bool>(_M_data);
     }
     ///@}
     //----------------------------------------------------------------------------------//
 
-    
+
     template <typename _Iter>
-    std::pair<bool, _ValType> 
+    std::pair<bool, _ValType>
     _M_lookup(_Iter& iter) {
-        const char index = _S_index_char(*iter); 
+        const char index = _S_index_char(*iter);
 
         switch (*iter) {
             case '{':
                 return _M_lookup(++iter);
-            
+
             case '\0':
             case ' ' :
             case '\t':
@@ -192,8 +188,8 @@ private:
             case '}':
                 if (_M_is_terminal())
                     return std::make_pair(true, _M_data);
-                else 
-                    return std::make_pair(false, _M_data); 
+                else
+                    return std::make_pair(false, _M_data);
 
             default:
                 break;
@@ -205,10 +201,10 @@ private:
             return std::make_pair(_M_is_terminal(), _M_data);
 
         auto it = _M_paths[index]->_M_lookup(++iter);
-        
+
         if (it.first) {
             /* somewhere down the line a match was found */
-            return it; 
+            return it;
         } else {
             /* there was no match for the next character */
             --iter;

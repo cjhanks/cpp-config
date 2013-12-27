@@ -27,6 +27,7 @@ along with libconf.  If not, see <http://www.gnu.org/licenses/>.
 #include <fstream>
 #include <functional>
 #include <iomanip>
+#include <iostream>
 #include <locale>
 #include <memory>
 #include <vector>
@@ -50,11 +51,13 @@ namespace {
 
 locale _S_locale;
 
+#if defined(CONFIG_SINGLETON)
 void
 config_cleanup_atexit() {
     if (config::instance())
         delete config::instance();
 }
+#endif // CONFIG_SINGLETON
 
 bool
 eos(_Iter& iter, bool do_throw) {
@@ -278,7 +281,7 @@ parse_string(_Iter& iter, parse_trie<string>* regs) {
                         append_regs(value, iter, regs);
                         continue;
                     } catch (trie_lookup_error& e) {
-                        DEBUG("error " << e.what());
+                        //DEBUG("error " << e.what());
                     }
                 }
                 break;
@@ -329,13 +332,8 @@ config_section::~config_section() {
 }
 
 config_section*
-config_section::section(const std::string& name) {
-    auto it = _M_kwargs.find(name);
-
-    if (it == _M_kwargs.end())
-        throw config_key_error(name);
-    else
-        return static_cast<config_section*>(it->second);
+config_section::section(const std::string& name) const {
+    return static_cast<config_section*>(_M_get_kwarg(name));
 }
 
 bool
@@ -345,7 +343,12 @@ config_section::has_kwarg(const string& key) const {
 
 bool
 config_section::has_section(const string& key) const {
-    return this->has_kwarg(key);
+    return this->has_kwarg(key) && _M_get_kwarg(key)->type() == kwarg::SECTION;
+}
+
+bool
+config_section::has_vector(const string& key) const {
+    return this->has_kwarg(key) && _M_get_kwarg(key)->type() == kwarg::VECTOR;
 }
 
 void
@@ -363,6 +366,16 @@ config_section::_M_get_kwarg(const string& key) const {
         throw config_key_error(key);
     else
         return _M_kwargs.at(key);
+}
+
+kwarg*
+config_section::_M_get_kwarg(const std::string& key, kwarg::TYPE t) const {
+    kwarg* ptr = _M_get_kwarg(key);
+
+    if (! ptr->type() == t)
+        throw config_type_error(key);
+    else
+        return ptr;
 }
 
 kwarg*
@@ -553,7 +566,7 @@ config_section::_M_parse_vector(string key, _Iter& iter, parse_trie<string>* reg
 exit_loop:
         break;
     }
-    
+
     return new kwarg_vector(key, items);
 }
 

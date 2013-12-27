@@ -6,7 +6,7 @@ Env.Append(CCFLAGS = [ '-Wall'
                      , '-Wextra'
                      , '-Werror'
                      , '-g'
-                     , '-O3'
+                     , '-O0'
                      , '-DCONFIG_SINGLETON'
                      , '-std=c++11' ])
 Env.Append(CPPPATH   = ['include', 'src'])

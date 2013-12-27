@@ -1,5 +1,5 @@
 
-#include "bits/config.hh"
+#include "config-bits.hh"
 
 #include <iostream>
 #include <string>

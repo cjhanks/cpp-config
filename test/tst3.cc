@@ -1,6 +1,7 @@
 
 
 #include "config.hh"
+#include "bits/debug.hh"
 
 #include <cassert>
 #include <iostream>

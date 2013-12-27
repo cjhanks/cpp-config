@@ -15,7 +15,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with libconf.  If not, see <http://www.gnu.org/licenses/>.
-#endif 
+#endif
 
 #ifndef __CONFIG_HH_
 #define __CONFIG_HH_
@@ -26,20 +26,23 @@ along with libconf.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdexcept>
 #include <string>
 #include <sstream>
-#include <unordered_map>
 #include <vector>
 
-#include "bits/config.hh"
-#include "bits/debug.hh"
+#include "config-bits.hh"
 
-
-////////////////////////////////////////////////////////////////////////////////////////// 
 #if defined(CONFIG_SINGLETON)
 #  define CFG config::instance()
-#endif 
+#endif
 
-using _Iter = std::string::iterator;
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// CONFIG EXCEPTION TYPES
+//////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @class config_io_error
+ * A file failed to be open & read.  The name of the offending file is stored in ::what()
+ */
 class config_io_error : public std::runtime_error {
 public:
     config_io_error(std::string fname)
@@ -47,6 +50,10 @@ public:
     {}
 };
 
+/**
+ * @class config_key_error
+ * Thrown if a key is accessed in a config_section which does not exist.
+ */
 class config_key_error : public std::runtime_error {
 public:
     config_key_error(std::string key)
@@ -54,19 +61,36 @@ public:
     {}
 };
 
+/**
+ * @class config_type_error
+ * Thrown if a key is accessed in a config_section which does not exist.
+ */
+class config_type_error : public std::runtime_error {
+public:
+    config_type_error(std::string key)
+        : std::runtime_error(key)
+    {}
+};
+
+
+/**
+ * @class config_parse_exception
+ * Thrown if configuration syntax does not seem sane.  ::what() attemps to show reasonable
+ * locality of the offending issue.
+ */
 class config_parse_exception : public std::runtime_error {
 public:
     config_parse_exception(std::string fname)
         : std::runtime_error(fname)
     {}
-    
+
     config_parse_exception(std::string key, _Iter iter, size_t lsize = 12
                          , size_t rsize = 12)
         : std::runtime_error(parse_error(key, iter, lsize, rsize))
     {}
 
 private:
-    static std::string 
+    static std::string
     parse_error(std::string key, _Iter iter, size_t lsize, size_t rsize) {
         std::stringstream ss;
 
@@ -80,7 +104,13 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////
 // KWARG ACCESS
 //////////////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * @class kwarg
+ *
+ * Every type in libconf is a subclass of `kwarg`.  A kwarg (and all subclass') are
+ * non-movable.  The kwarg subclass holds nothing but the name and type of the super class
+ * element.
+ */
 class kwarg {
 public:
     enum TYPE { FLOATING, INTEGRAL, STRING, SECTION, UNDEFINED, VECTOR, BOOL };
@@ -91,15 +121,22 @@ public:
 
     virtual ~kwarg() {}
 
-    std::string name() const { return _M_name; }
-    
-    TYPE type() const { return _M_type; }
+    std::string name() const
+    { return _M_name; }
+
+    TYPE type() const
+    { return _M_type; }
 
     kwarg& operator=(const kwarg&) = delete;
     kwarg(const kwarg&) = delete;
     kwarg(kwarg&&) = delete;
 
-protected: 
+protected:
+    ///{@
+    /**
+     * These template macros are used inside std::enable_if<...> specializations as a
+     * generic way of mapping cast types into the internal representation types.
+     */
     template <typename _K>
     struct is_bool {
         static constexpr bool value = std::is_same<_K, bool>::value;
@@ -107,25 +144,30 @@ protected:
 
     template <typename _K>
     struct is_integral {
-        static constexpr bool value = !is_bool<_K>::value 
+        static constexpr bool value = !is_bool<_K>::value
                                     && std::is_integral<_K>::value;
     };
 
     template <typename _K>
     struct is_floating{
-        static constexpr bool value = std::is_floating_point<_K>::value; 
+        static constexpr bool value = std::is_floating_point<_K>::value;
     };
-    
+
     template <typename _K>
     struct is_string {
-        static constexpr bool value = std::is_same<std::string, _K>::value; 
+        static constexpr bool value = std::is_same<std::string, _K>::value;
     };
-    
+    ///@}
+
 private:
     const std::string _M_name;
     const TYPE _M_type;
 };
 
+/**
+ * @class kwarg_const
+ * Represents access to any primitive data type.
+ */
 class kwarg_const : public kwarg {
 public:
     ///{@
@@ -144,11 +186,13 @@ public:
     kwarg_const(std::string data, std::string name)
         : kwarg(name, kwarg::STRING)
     { _M_data.str = data; }
-
     ///@}
-    
-    
-    ///{@ 
+
+    ///{@
+    /**
+     * These accessor functions are needed due to the local union.  It must first access
+     * the proper union element and then perform a proper cast.
+     */
     template <typename _Tp>
     typename std::enable_if<is_integral<_Tp>::value, _Tp>::type
     as() const {
@@ -176,6 +220,9 @@ public:
 
 private:
     /**
+     * note:  .str element was once in the union via C++11 unrestricted union.  This was
+     * deemed not worth the effort of managing the potential memory leaks inside the
+     * destructor.
      */
     struct __kwarg_const_union {
         union {
@@ -188,7 +235,11 @@ private:
     } _M_data;
 };
 
-
+/**
+ * A kwarg vector has no implemented functions of its own.  Rather, it exposes the
+ * internal vector<kwarg_const*> object via the -> operator.  As a consequence it is
+ * generally as fast as the equivalent vector<_Tp>
+ */
 class kwarg_vector : public kwarg {
 public:
     kwarg_vector(const std::string& name, std::vector<kwarg_const*>& source)
@@ -200,12 +251,11 @@ public:
             delete ((*it));
         }
     }
-    
+
     const std::vector<kwarg_const*>*
-    operator->() const { 
+    operator->() const {
         return &_M_vector;
     }
-
 private:
     const std::vector<kwarg_const*> _M_vector;
 };
@@ -214,41 +264,43 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////
 // CONFIG SECTIONS
 //////////////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * @class config_section
+ *
+ * Represents the "object" element of the config library in that it internally maps
+ * key->value pairs.
+ */
 class config_section : public kwarg {
-
-    template <typename _K>
-    struct is_not_customized {
-        static constexpr bool value = std::is_pointer<_K>::value;
-    };
-
 public:
     ///{@
-    config_section& operator=(const config_section&) = delete;
-    config_section(const config_section&) = delete;
-    config_section(config_section&&) = delete;
-    ///@}
-    
-    config_section* section(const std::string& name);
-    config_section* object(const std::string& name) {
-        return this->section(name);
-    }
-
-    kwarg_vector&
-    vector(const std::string& key) const {
+    /**
+     * these functions access internal kwarg* elements and cast them to the appropriate
+     * type /with/ typechecking.
+     *
+     * @throw config_key_error
+     * @throw config_type_error
+     */
+    config_section* section(const std::string& name) const;
+    config_section* object(const std::string& name) const { return this->section(name); }
+    kwarg_vector& vector(const std::string& key) const {
         return *static_cast<kwarg_vector*>(_M_get_kwarg(key));
     }
-    
+    ///@}
+
     ///{@
     /**
+     * @template _Tp should be a primitive
+     * @throw config_key_error
      */
     template <typename _Tp>
     _Tp
     get(const std::string& key) const {
         return static_cast<kwarg_const*>(_M_get_kwarg(key))->as<_Tp>();
     }
-    
+
     /**
+     * Like @see config_section::get(string) except if the value cannot be found it
+     * returns the value passed to deflt instead of excepting.
      */
     template <typename _Tp>
     _Tp
@@ -257,67 +309,86 @@ public:
 
         if (it == _M_kwargs.end())
             return deflt;
-        else 
+        else
             return static_cast<kwarg_const*>(_M_get_kwarg(key))->as<_Tp>();
     }
     ///@}
-    
+
+    ///{@
+    /**
+     * element checks.  if the has_{type} implies a specific kwarg type it will return
+     * false if an identical key with a different type exists.
+     */
     bool has_kwarg(const std::string& key) const;
     bool has_section(const std::string& key) const;
+    bool has_vector(const std::string& key) const;
+    ///@}
 
+    /// do not rely on this function : simply prints data out to stderr
     void dump(int depth = 0);
 
 protected:
-    friend class config_parser;
     config_section(const std::string& name);
     virtual ~config_section();
-    
+
+    ///{@
+    /**
+     * ::_M_get_kwarg(...) functions @throw config_key_error
+     */
     void _M_set_kwarg(kwarg* val);
     kwarg* _M_get_kwarg(const std::string& key) const;
-   
+    kwarg* _M_get_kwarg(const std::string& key, kwarg::TYPE t) const;
+    ///@}
+
+    ///{@
     void _M_parse_file(const std::string& file_path, parse_trie<std::string>* regs);
     void _M_parse_iterator(_Iter& iter, parse_trie<std::string>* regs);
+    ///@}
+
+    ///{@
     void _M_parse_macro(_Iter& iter, parse_trie<std::string>* regs);
-    kwarg* _M_parse_kwarg(std::string key, _Iter& iter, parse_trie<std::string>* regs);
-    kwarg* _M_parse_vector(std::string key, _Iter& iter, parse_trie<std::string>* regs);
-    
     void _M_parse_define(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_export(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_include(_Iter& iter, parse_trie<std::string>* regs);
+    ///@}
+
+    ///{@
+    kwarg* _M_parse_kwarg(std::string key, _Iter& iter, parse_trie<std::string>* regs);
+    kwarg* _M_parse_vector(std::string key, _Iter& iter, parse_trie<std::string>* regs);
+    ///@}
 
 private:
-    struct umap_overload {
-        size_t
-        operator() (const std::string& key) const {
-            return 1;
-            size_t k = 2166136261;
-
-            for (size_t i = 0; i < key.size(); i += 4)
-                k = (k * 16777619) ^ key[i];
-
-            return k;
-        };
-    };
-
-    std::unordered_map<std::string, kwarg*, umap_overload> _M_kwargs;
-    //std::unordered_map<std::string, kwarg*> _M_kwargs;
+    std::map<std::string, kwarg*> _M_kwargs;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // CONFIG ROOT OBJECT
 //////////////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * @class config
+ * The config class is a specialized config_section identifying the 'root' of the config
+ * hierarchy.
+ *
+ * It has two compile modes
+ * #ifdef CONFIG_SINGLETON
+ *  A singlenton instance can be initialized and accessed via public static methods and
+ *  only a single config can exist in the applicatin space.  Memory is managed by the
+ *  config class.  In this case it registers and ::atexit(...) function which frees memory
+ *  appropriately.
+ *
+ * #ifndef CONFIG_SINGLETON
+ *  Any number of configuration objects can be initialized, however memory is managed by
+ *  the creator.
+ */
 class config : public config_section {
 public:
 #if defined(CONFIG_SINGLETON)
     static constexpr bool has_singleton = true;
     static config* initialize(const std::string& file_path);
     static config* instance();
-#else 
+#else
     static constexpr bool has_singleton = false;
-    config(const std::string& file_path);
-#endif 
-    
+#endif
     /**
      * Tests down a hierarchy against a casting type.  This function should be used to
      * ensure types are being parsed correctly.
@@ -328,11 +399,21 @@ public:
      */
     bool assert_type(const std::string& key, kwarg::TYPE type) const;
 
+#if defined(CONFIG_SINGLETON)
+private:
+#endif
+    /**
+     * @WARNING: constructor can throw exceptions.
+     *
+     * @throw config_parse_exception
+     */
+    config(const std::string& file_path);
+
 private:
 #if defined(CONFIG_SINGLETON)
     static config* _S_instance;
     config(const std::string& file_path);
-#endif 
+#endif
 
     parse_trie<std::string> _M_macro_regs;
 };
