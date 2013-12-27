@@ -66,14 +66,13 @@ main() {
      * see below...
      */
     size_t i(0);
+    
     for (auto it  = CFG->section("some_section")->vector("some_vector").cbegin();
               it != CFG->section("some_section")->vector("some_vector").cend();
             ++it) 
         assert(i++ == it->as<long>());
         // true
         
-    const kwarg_vector& vec = CFG->section("some_section")->vector("some_vector");
-    
     /**
      * the performance of this loop is identical to any std::vector<long> (minus any implicit
      * casting operations and indirection).  GCC -O3 shows this to perform equivalent to a 
@@ -85,10 +84,12 @@ main() {
      * template <typename _Tp>
      * kwarg_section::as() const { ... } 
      */
+    const kwarg_vector& vec = CFG->section("some_section")->vector("some_vector");
     i = 0;
+    
     for (auto it = vec.cbegin(); it != vec.cend(); ++it) 
         assert(i++ == it->as<long>());
-        
+        // true
         
     return 0;
 }
