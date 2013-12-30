@@ -12,7 +12,7 @@ and all other configuration specifications.
 /* FILE: example.cfg */
 
 @define ONE = 1
-@export ONE
+@import ONE
 
 /* non-macros */
 keyword_integer   = $ONE
@@ -104,7 +104,7 @@ main() {
 
 ### @define 
 
-### @export
+### @import
 
 ### @execute
 

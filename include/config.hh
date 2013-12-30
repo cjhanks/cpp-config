@@ -1,22 +1,3 @@
-#if 0
-Copyright 2013 CjHanks <develop@cjhanks.name>
-
-This file is part of libconf.
-
-libconf is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-libconf is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with libconf.  If not, see <http://www.gnu.org/licenses/>.
-#endif
-
 #ifndef __CONFIG_HH_
 #define __CONFIG_HH_
 
@@ -272,6 +253,9 @@ private:
  */
 class config_section : public kwarg {
 public:
+    using map_type       = std::map<std::string, kwarg*>;
+    using const_iterator = map_type::const_iterator;
+
     ///{@
     /**
      * these functions access internal kwarg* elements and cast them to the appropriate
@@ -285,6 +269,11 @@ public:
     kwarg_vector& vector(const std::string& key) const {
         return *static_cast<kwarg_vector*>(_M_get_kwarg(key));
     }
+    ///@}
+
+    ///{@
+    const_iterator cbegin() const;
+    const_iterator cend() const;
     ///@}
 
     ///{@
@@ -348,7 +337,7 @@ protected:
     ///{@
     void _M_parse_macro(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_define(_Iter& iter, parse_trie<std::string>* regs);
-    void _M_parse_export(_Iter& iter, parse_trie<std::string>* regs);
+    void _M_parse_import(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_include(_Iter& iter, parse_trie<std::string>* regs);
     ///@}
 
@@ -358,7 +347,7 @@ protected:
     ///@}
 
 private:
-    std::map<std::string, kwarg*> _M_kwargs;
+    map_type _M_kwargs;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -401,6 +390,7 @@ public:
 
 #if defined(CONFIG_SINGLETON)
 private:
+    static config* _S_instance;
 #endif
     /**
      * @WARNING: constructor can throw exceptions.
@@ -410,11 +400,6 @@ private:
     config(const std::string& file_path);
 
 private:
-#if defined(CONFIG_SINGLETON)
-    static config* _S_instance;
-    config(const std::string& file_path);
-#endif
-
     parse_trie<std::string> _M_macro_regs;
 };
 

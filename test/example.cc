@@ -58,7 +58,7 @@ main(void) {
     assert(CFG->has_section("object_1"));
     assert(CFG->section("object_1")->get<string>("string") == "Hello world");
     
-    assert(CFG->has_section("vector_0"));
+    assert(CFG->has_vector("vector_0"));
     int i = 0;
 
     for (auto it = CFG->vector("vector_0")->cbegin(); 

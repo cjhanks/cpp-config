@@ -1,22 +1,3 @@
-#if 0
-Copyright 2013 CjHanks <develop@cjhanks.name>
-
-This file is part of libconf.
-
-libconf is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-libconf is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with libconf.  If not, see <http://www.gnu.org/licenses/>.
-#endif
-
 #include "config.hh"
 
 #include <libgen.h>
@@ -490,7 +471,7 @@ config_section::_M_parse_define(_Iter& iter, parse_trie<string>* regs) {
 };
 
 void
-config_section::_M_parse_export(_Iter& iter, parse_trie<string>* regs) {
+config_section::_M_parse_import(_Iter& iter, parse_trie<string>* regs) {
     bypass_whitespace(iter, true);
     string name  = parse_word(iter);
     char*  value = getenv(name.c_str());
@@ -507,10 +488,10 @@ config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs) {
 
 void
 config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
-    enum Op { UNDEFINED = 0, DEFINE, EXPORT, INCLUDE };
+    enum Op { UNDEFINED = 0, DEFINE, IMPORT, INCLUDE };
 
     static parse_trie<Op> LUT { { "DEFINE" , DEFINE  }
-                              , { "EXPORT" , EXPORT  }
+                              , { "IMPORT" , IMPORT  }
                               , { "INCLUDE", INCLUDE } };
     if ('@' != *iter)
         throw config_parse_exception("expected ['@']", iter);
@@ -531,8 +512,8 @@ config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
             _M_parse_define(iter, regs);
             break;
 
-        case EXPORT:
-            _M_parse_export(iter, regs);
+        case IMPORT:
+            _M_parse_import(iter, regs);
             break;
 
         case INCLUDE:
@@ -568,6 +549,16 @@ exit_loop:
     }
 
     return new kwarg_vector(key, items);
+}
+
+config_section::const_iterator 
+config_section::cbegin() const {
+    return _M_kwargs.cbegin();
+}
+
+config_section::const_iterator 
+config_section::cend() const {
+    return _M_kwargs.cend();
 }
 
 void

@@ -20,7 +20,8 @@ t2  = Env.Program('tst2', source = ['test/tst2.cc', lib])
 t3  = Env.Program('tst3', source = ['test/tst3.cc', lib])
 
 example  = Env.Program('example', source = ['test/example.cc', lib])
-
 example  = Env.Program('perf-0', source = ['test/perf-0.cc', lib])
 
+Env.Alias('install', Env.Install('/usr/local/lib', lib))
+Env.Alias('install', Env.Install('/usr/local/include/conf', 'include'))
 
