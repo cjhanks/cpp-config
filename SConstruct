@@ -23,5 +23,6 @@ example  = Env.Program('example', source = ['test/example.cc', lib])
 example  = Env.Program('perf-0', source = ['test/perf-0.cc', lib])
 
 Env.Alias('install', Env.Install('/usr/local/lib', lib))
-Env.Alias('install', Env.Install('/usr/local/include/conf', 'include'))
+Env.Alias('install'
+        , Env.InstallAs('/usr/local/include/conf', Dir('#include')))
 
