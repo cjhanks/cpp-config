@@ -12,6 +12,7 @@
 #include <locale>
 #include <memory>
 #include <vector>
+#include "bits/debug.hh"
 
 
 using std::function;
@@ -377,6 +378,7 @@ config_section::_M_parse_kwarg(string key, _Iter& iter, parse_trie<string>* regs
 
         /* section vector */
         case '[':
+        case '(':
             ptr = _M_parse_vector(key, ++iter, regs);
             break;
 
@@ -421,6 +423,7 @@ config_section::_M_parse_iterator(_Iter& iter, parse_trie<string>* regs) {
                 break;
 
             case ']':
+            case ')':
                 ++iter;
                 break;
 
@@ -432,8 +435,8 @@ config_section::_M_parse_iterator(_Iter& iter, parse_trie<string>* regs) {
                 string name = parse_word(iter);
 
                 bypass_whitespace(iter  , true);
-                if ('=' != *iter)
-                    throw config_parse_exception("expected '='", iter);
+                if ('=' != *iter && ':' != *iter)
+                    throw config_parse_exception("expected '=' or ':'", iter);
                 bypass_whitespace(++iter, true);
 
                 _M_set_kwarg(_M_parse_kwarg(name, iter, regs));
@@ -533,6 +536,7 @@ config_section::_M_parse_vector(string key, _Iter& iter, parse_trie<string>* reg
                 break;
 
             case ']':
+            case ')':
                 goto exit_loop;
 
             default:
@@ -624,7 +628,9 @@ config* config::_S_instance(0x0);
 config*
 config::initialize(const string& file_path) {
     assert(0x0 == config::_S_instance);
-    return new config(file_path);
+    _S_instance = new config(file_path);
+    ::atexit(config_cleanup_atexit);
+    return _S_instance;
 }
 
 config*
@@ -632,16 +638,11 @@ config::instance() {
     assert(0x0 != config::_S_instance);
     return _S_instance;
 }
-#endif
+#endif // defined(CONFIG_SINGLETON)
 
 config::config(const string& file_path)
     : config_section("ROOT")
 {
-#if defined(CONFIG_SINGLETON)
-    assert(0x0 == _S_instance);
-    _S_instance = this;
-    ::atexit(config_cleanup_atexit);
-#endif
     path_info info = get_path_info(file_path);
     _M_macro_regs.defval("DOT") = info.dirpath;
     _M_parse_file(info.abspath, &_M_macro_regs);
