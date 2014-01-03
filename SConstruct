@@ -36,5 +36,6 @@ example  = Env.Program('perf-0', source = ['test/perf-0.cc', lib])
 
 Env.Alias('install', Env.Install(join(GetOption('prefix'), 'lib'), lib))
 Env.Alias('install'
-        , Env.InstallAs(join(GetOption('prefix'), 'include', 'conf'), Dir('#include')))
+        , Env.InstallAs(join(GetOption('prefix'), 'include', 'appconf')
+                      , Dir('#include')))
 

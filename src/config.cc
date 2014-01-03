@@ -12,7 +12,6 @@
 #include <locale>
 #include <memory>
 #include <vector>
-#include "bits/debug.hh"
 
 
 using std::function;
@@ -635,7 +634,6 @@ config::initialize(const string& file_path) {
 
 config*
 config::instance() {
-    assert(0x0 != config::_S_instance);
     return _S_instance;
 }
 #endif // defined(CONFIG_SINGLETON)

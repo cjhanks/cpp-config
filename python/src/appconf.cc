@@ -141,7 +141,7 @@ parse_to_dict(PyObject *self, PyObject *args) {
 
 /*=--------------------------------------------------------------------------=*/
 
-static PyMethodDef pyconf_module_methods [] = {
+static PyMethodDef appconf_module_methods [] = {
         {
                 "parse_to_dict"
               , (PyCFunction) parse_to_dict
@@ -156,17 +156,17 @@ static PyMethodDef pyconf_module_methods [] = {
 #endif
 
 PyMODINIT_FUNC
-init__pyconf() {
+init__appconf() {
         PyObject *m;
 
-        if ((m = Py_InitModule3("pyconf.__pyconf", pyconf_module_methods, 0x0))
+        if ((m = Py_InitModule3("appconf.__appconf", appconf_module_methods, 0x0))
                == 0x0)
                 return;
 
-        ConfigError = PyErr_NewException("pyconf.ConfigError", 0x0, 0x0);
-        ConfigIOError = PyErr_NewException("pyconf.ConfigIOError"
+        ConfigError = PyErr_NewException("appconf.ConfigError", 0x0, 0x0);
+        ConfigIOError = PyErr_NewException("appconf.ConfigIOError"
                                          , ConfigError, 0x0);
-        ConfigParseException = PyErr_NewException("pyconf.ConfigParseException"
+        ConfigParseException = PyErr_NewException("appconf.ConfigParseException"
                                                  , ConfigError, 0x0);
         Py_INCREF(ConfigError);
         Py_INCREF(ConfigIOError);
