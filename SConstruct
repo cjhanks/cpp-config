@@ -19,7 +19,7 @@ Env.Append(CCFLAGS = [ '-Wall'
                      , '-Werror'
                      , '-g'
                      , '-O3'
-                     , '-std=c++11' ])
+                     , '-std=c++0x' ])
 Env.Append(CPPPATH   = ['include', 'src'])
 Env.Append(LINKFLAGS = ['-rdynamic', '-lrt' ])                            
 

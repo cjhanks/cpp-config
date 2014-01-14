@@ -253,8 +253,8 @@ private:
  */
 class config_section : public kwarg {
 public:
-    using map_type       = std::map<std::string, kwarg*>;
-    using const_iterator = map_type::const_iterator;
+    typedef std::map<std::string, kwarg*> map_type;
+    typedef map_type::const_iterator const_iterator;
 
     ///{@
     /**
