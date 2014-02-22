@@ -3,7 +3,7 @@ from setuptools import setup, find_packages, Extension
 from os         import getenv 
 
 
-Includes  = [ '%s/include ' % getenv('VIRTUAL_ENV', '/usr/local')
+Includes  = [ '%s/include' % getenv('VIRTUAL_ENV', '/usr/local')
             , '/usr/include' ]
 Libraries = [ '%s/lib' % getenv('VIRTUAL_ENV', '/usr/local')
             , '/usr/include' ]

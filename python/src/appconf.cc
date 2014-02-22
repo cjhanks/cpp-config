@@ -2,7 +2,6 @@
 #include <Python.h>
 #include "appconf/config.hh"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
