@@ -20,7 +20,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 /// TODO: encapsulate this internal iterator type info better
-using _Iter = std::string::iterator;
+typedef std::string::iterator _Iter;
 
 inline bool
 acceptable_char(char c) {

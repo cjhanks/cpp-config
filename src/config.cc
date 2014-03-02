@@ -491,8 +491,19 @@ config_section::_M_parse_import(_Iter& iter, parse_trie<string>* regs) {
     string name  = parse_word(iter);
     char*  value = getenv(name.c_str());
 
-    if (0x0 != value)
-        regs->defval(name) = string(value);
+    if (0x0 != value) {
+        stringstream ss;
+        /* it isn't obvious that you should export double quotes into the env, so we check
+         * and do it automatically */
+        if ('"' != value[0] && (std::isalpha(value[0]) || value[0] == '$'))
+            ss << '"' << value << '"';
+        else 
+            ss << value;
+
+        string data(ss.str());
+        auto begin = data.begin();
+        regs->defval(name) = parse_string(begin, regs);
+    }
 }
 
 void
