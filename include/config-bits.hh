@@ -24,7 +24,10 @@ using _Iter = std::string::iterator;
 
 inline bool
 acceptable_char(char c) {
-    return std::isalpha(c) || std::isdigit(c) || c == '_';
+    return std::isalpha(c) 
+        || std::isdigit(c) 
+        || c == '_' 
+        || c == '*';
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

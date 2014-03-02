@@ -445,13 +445,26 @@ config_section::_M_parse_iterator(_Iter& iter, parse_trie<string>* regs) {
 }
 
 void
-config_section::_M_parse_file(const string& file_path, parse_trie<string>* regs) {
-    path_info info = get_path_info(file_path);
+config_section::_M_parse_file(const string& file_path, parse_trie<string>* regs 
+                            , bool optional) {
+    path_info info;
+    
+    try {
+        info = get_path_info(file_path);
+    } catch (const config_io_error& e) {
+        if (optional)
+            return;
+        else
+            throw e;
+    }
 
-   ifstream file(info.abspath);
-
-    if (! file.good())
-        throw config_io_error(file_path);
+    ifstream file(info.abspath);
+    if (! file.good()) {
+        if (optional)
+            return;
+        else
+            throw config_io_error(file_path);
+    }
 
     string data((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
     auto iter = data.begin();
@@ -483,18 +496,24 @@ config_section::_M_parse_import(_Iter& iter, parse_trie<string>* regs) {
 }
 
 void
-config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs) {
+config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs 
+                               , bool optional) {
     bypass_whitespace(iter, true);
-    _M_parse_file(parse_string(iter, regs), regs);
+    _M_parse_file(parse_string(iter, regs), regs, optional);
 }
 
 void
 config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
-    enum Op { UNDEFINED = 0, DEFINE, IMPORT, INCLUDE };
+    enum Op { UNDEFINED = 0 
+            , DEFINE
+            , IMPORT
+            , INCLUDE 
+            , INCLUDE_OPTIONAL };
 
-    static parse_trie<Op> LUT { { "DEFINE" , DEFINE  }
-                              , { "IMPORT" , IMPORT  }
-                              , { "INCLUDE", INCLUDE } };
+    static parse_trie<Op> LUT { { "DEFINE"  , DEFINE  }
+                              , { "IMPORT"  , IMPORT  }
+                              , { "INCLUDE" , INCLUDE }
+                              , { "INCLUDE*", INCLUDE_OPTIONAL } };
     if ('@' != *iter)
         throw config_parse_exception("expected ['@']", iter);
 
@@ -519,7 +538,11 @@ config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
             break;
 
         case INCLUDE:
-            _M_parse_include(iter, regs);
+            _M_parse_include(iter, regs, false);
+            break;
+        
+        case INCLUDE_OPTIONAL:
+            _M_parse_include(iter, regs, true);
             break;
     }
 }

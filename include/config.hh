@@ -330,7 +330,8 @@ protected:
     ///@}
 
     ///{@
-    void _M_parse_file(const std::string& file_path, parse_trie<std::string>* regs);
+    void _M_parse_file(const std::string& file_path, parse_trie<std::string>* regs 
+                     , bool optional = false);
     void _M_parse_iterator(_Iter& iter, parse_trie<std::string>* regs);
     ///@}
 
@@ -338,7 +339,7 @@ protected:
     void _M_parse_macro(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_define(_Iter& iter, parse_trie<std::string>* regs);
     void _M_parse_import(_Iter& iter, parse_trie<std::string>* regs);
-    void _M_parse_include(_Iter& iter, parse_trie<std::string>* regs);
+    void _M_parse_include(_Iter& iter, parse_trie<std::string>* regs, bool optional);
     ///@}
 
     ///{@
