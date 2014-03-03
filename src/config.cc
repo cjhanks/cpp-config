@@ -445,10 +445,10 @@ config_section::_M_parse_iterator(_Iter& iter, parse_trie<string>* regs) {
 }
 
 void
-config_section::_M_parse_file(const string& file_path, parse_trie<string>* regs 
+config_section::_M_parse_file(const string& file_path, parse_trie<string>* regs
                             , bool optional) {
     path_info info;
-    
+
     try {
         info = get_path_info(file_path);
     } catch (const config_io_error& e) {
@@ -497,7 +497,7 @@ config_section::_M_parse_import(_Iter& iter, parse_trie<string>* regs) {
          * and do it automatically */
         if ('"' != value[0] && (std::isalpha(value[0]) || value[0] == '$'))
             ss << '"' << value << '"';
-        else 
+        else
             ss << value;
 
         string data(ss.str());
@@ -507,7 +507,7 @@ config_section::_M_parse_import(_Iter& iter, parse_trie<string>* regs) {
 }
 
 void
-config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs 
+config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs
                                , bool optional) {
     bypass_whitespace(iter, true);
     _M_parse_file(parse_string(iter, regs), regs, optional);
@@ -515,16 +515,17 @@ config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs
 
 void
 config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
-    enum Op { UNDEFINED = 0 
+    enum Op { UNDEFINED = 0
             , DEFINE
             , IMPORT
-            , INCLUDE 
+            , INCLUDE
             , INCLUDE_OPTIONAL };
 
-    static parse_trie<Op> LUT { { "DEFINE"  , DEFINE  }
-                              , { "IMPORT"  , IMPORT  }
-                              , { "INCLUDE" , INCLUDE }
-                              , { "INCLUDE*", INCLUDE_OPTIONAL } };
+    static parse_trie<Op> LUT { { "DEFINE"          , DEFINE  }
+                              , { "IMPORT"          , IMPORT  }
+                              , { "INCLUDE"         , INCLUDE }
+                              , { "INCLUDE_OPTIONAL", INCLUDE_OPTIONAL
+                              , { "INCLUDE*"        , INCLUDE_OPTIONAL } };
     if ('@' != *iter)
         throw config_parse_exception("expected ['@']", iter);
 
@@ -551,7 +552,7 @@ config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
         case INCLUDE:
             _M_parse_include(iter, regs, false);
             break;
-        
+
         case INCLUDE_OPTIONAL:
             _M_parse_include(iter, regs, true);
             break;
@@ -588,12 +589,12 @@ exit_loop:
     return new kwarg_vector(key, items);
 }
 
-config_section::const_iterator 
+config_section::const_iterator
 config_section::cbegin() const {
     return _M_kwargs.cbegin();
 }
 
-config_section::const_iterator 
+config_section::const_iterator
 config_section::cend() const {
     return _M_kwargs.cend();
 }
