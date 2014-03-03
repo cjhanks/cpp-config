@@ -524,7 +524,7 @@ config_section::_M_parse_macro(_Iter& iter, parse_trie<string>* regs) {
     static parse_trie<Op> LUT { { "DEFINE"          , DEFINE  }
                               , { "IMPORT"          , IMPORT  }
                               , { "INCLUDE"         , INCLUDE }
-                              , { "INCLUDE_OPTIONAL", INCLUDE_OPTIONAL
+                              , { "INCLUDE_OPTIONAL", INCLUDE_OPTIONAL }
                               , { "INCLUDE*"        , INCLUDE_OPTIONAL } };
     if ('@' != *iter)
         throw config_parse_exception("expected ['@']", iter);
