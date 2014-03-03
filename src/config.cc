@@ -24,6 +24,8 @@ using std::string;
 using std::stringstream;
 using std::unique_ptr;
 
+#define LOG(_msg_) \
+    do { std::cerr << _msg_ << std::endl; } while(0)
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -495,7 +497,7 @@ config_section::_M_parse_import(_Iter& iter, parse_trie<string>* regs) {
         stringstream ss;
         /* it isn't obvious that you should export double quotes into the env, so we check
          * and do it automatically */
-        if ('"' != value[0] && (std::isalpha(value[0]) || value[0] == '$'))
+        if ('"' != value[0] && (! std::isdigit(value[0]) || value[0] == '$'))
             ss << '"' << value << '"';
         else
             ss << value;
@@ -510,7 +512,10 @@ void
 config_section::_M_parse_include(_Iter& iter, parse_trie<string>* regs
                                , bool optional) {
     bypass_whitespace(iter, true);
-    _M_parse_file(parse_string(iter, regs), regs, optional);
+    assert(*iter = '=');
+    bypass_whitespace(++iter, true);
+    string data = parse_string(iter, regs);
+    _M_parse_file(data, regs, optional);
 }
 
 void
@@ -579,8 +584,8 @@ config_section::_M_parse_vector(string key, _Iter& iter, parse_trie<string>* reg
                         );
                 break;
         }
-
-        bypass_whitespace(++iter, true);
+        
+        bypass_whitespace(iter, true);
         continue;
 exit_loop:
         break;
