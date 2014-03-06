@@ -572,6 +572,7 @@ config_section::_M_parse_vector(string key, _Iter& iter, parse_trie<string>* reg
     while (! eos(iter, true)) {
         switch (*iter) {
             case ',':
+                ++iter;
                 break;
 
             case ']':
@@ -584,7 +585,7 @@ config_section::_M_parse_vector(string key, _Iter& iter, parse_trie<string>* reg
                         );
                 break;
         }
-        
+
         bypass_whitespace(iter, true);
         continue;
 exit_loop:
