@@ -158,7 +158,7 @@ public:
 
     kwarg_const(int64_t data, std::string name)
         : kwarg(name, kwarg::INTEGRAL)
-    { _M_data.integral = data; }
+    { _M_data.floating = static_cast<double>(data); }
 
     kwarg_const(double data, std::string name)
         : kwarg(name, kwarg::FLOATING)
@@ -177,7 +177,7 @@ public:
     template <typename _Tp>
     typename std::enable_if<is_integral<_Tp>::value, _Tp>::type
     as() const {
-        return static_cast<_Tp>(_M_data.integral);
+        return static_cast<_Tp>(_M_data.floating);
     }
 
     template <typename _Tp>
@@ -207,7 +207,6 @@ private:
      */
     struct __kwarg_const_union {
         union {
-            int64_t integral;
             double  floating;
             bool    boolean;
         };
